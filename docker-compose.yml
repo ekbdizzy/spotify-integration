@@ -10,7 +10,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${EXTERNAL_REDIS_PORT}:6379"
   
   web:
     build:
@@ -25,6 +25,8 @@ services:
       - db
       - redis
     environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
       - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}/0
   
   celery:

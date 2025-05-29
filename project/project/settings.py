@@ -17,6 +17,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party apps
+    "spotify_integration",
 ]
 # Celery Configuration
 CELERY_BROKER_URL = env.str('CELERY_BROKER_URL', 'redis://redis:6379/0')
