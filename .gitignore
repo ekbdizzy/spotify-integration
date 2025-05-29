@@ -8,5 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
-
+.env
 *.sqlite3
+
+# Celery files
+celerybeat-schedule
+celerybeat.pid
+
+.idea
+.DS_Store

@@ -1,0 +1,79 @@
+services:
+  db:
+    image: postgres:16
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${EXTERNAL_POSTGRES_PORT}:5432"
+  
+  redis:
+    image: redis:7
+    ports:
+      - "${REDIS_PORT}:6379"
+  
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    volumes:
+      - ./project:/app/project
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}/0
+  
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "celery", "-A", "project.celery", "worker", "-l", "info"]
+    working_dir: /app/project
+    volumes:
+      - ./project:/app/project
+    depends_on:
+      - db
+      - redis
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://myuser:mypassword@db:5432/mydb
+      - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}/0
+  
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "celery", "-A", "project.celery", "beat", "-l", "info"]
+    working_dir: /app/project
+    volumes:
+      - ./project:/app/project
+    depends_on:
+      - db
+      - redis
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://myuser:mypassword@db:5432/mydb
+      - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}/0
+  
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "celery", "-A", "project.celery", "flower", "--port=5555"]
+    working_dir: /app/project
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./project:/app/project
+    depends_on:
+      - redis
+    env_file: .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}/0
+
+volumes:
+  postgres_data:
