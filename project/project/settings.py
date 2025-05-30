@@ -18,7 +18,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party apps
+    'rest_framework',
+
     "spotify_integration",
 ]
 # Celery Configuration
@@ -29,6 +30,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
+
+# Spotify Integration Settings
+SPOTIFY_CLIENT_ID = env.str("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = env.str("SPOTIFY_CLIENT_SECRET")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
