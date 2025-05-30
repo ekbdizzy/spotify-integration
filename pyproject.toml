@@ -12,6 +12,7 @@ dependencies = [
     "flower>=2.0.1",
     "psycopg2-binary>=2.9.10",
     "redis>=6.2.0",
+    "spotipy>=2.25.1",
 ]
 
 [dependency-groups]

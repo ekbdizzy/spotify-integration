@@ -34,6 +34,7 @@ CELERY_ENABLE_UTC = True
 # Spotify Integration Settings
 SPOTIFY_CLIENT_ID = env.str("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = env.str("SPOTIFY_CLIENT_SECRET")
+SPOTIFY_REDIRECT_URI = env.str("SPOTIFY_REDIRECT_URI")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
