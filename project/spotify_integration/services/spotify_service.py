@@ -29,13 +29,10 @@ class SpotifyService:
             ]
         )
 
-    def get_auth_url(self, state: str | None = None) -> tuple[str, str]:
+    def get_auth_url(self, state: str) -> tuple[str, str]:
         """
         Get url for Spotify authentication.
         """
-        if state is None:
-            state = secrets.token_urlsafe(32)
-
         sp_oauth = SpotifyOAuth(
             client_id=self.client_id,
             client_secret=self.client_secret,
@@ -45,7 +42,7 @@ class SpotifyService:
             show_dialog=True,
         )
         auth_url = sp_oauth.get_authorize_url()
-        return auth_url, state
+        return auth_url
 
     def exchange_code_for_tokens(self, code: str) -> dict:
         """

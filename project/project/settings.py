@@ -36,6 +36,9 @@ SPOTIFY_CLIENT_ID = env.str("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = env.str("SPOTIFY_CLIENT_SECRET")
 SPOTIFY_REDIRECT_URI = env.str("SPOTIFY_REDIRECT_URI")
 
+REDIS_URL = env.str("REDIS_URL")
+REDIS_OAUTH_STATE_EXPIRE = 60  # 60 seconds
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -56,7 +59,7 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'spotify_integration.exceptions.custom_exception_handler',
 }
 
-SESSION_COOKIE_AGE = 86400  # 24 часа
+SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG

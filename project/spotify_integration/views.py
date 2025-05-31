@@ -1,27 +1,30 @@
-from rest_framework import status
 from django.contrib.auth import login as django_login
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from spotify_integration.services.spotify_auth_service import \
-    SpotifyAuthService
-from spotify_integration.services.spotify_service import SpotifyService
+from spotify_integration.serializers import (SpotifyAuthSerializer,
+                                             SpotifyCallbackSerializer)
+from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService
 
 
 class SpotifyAuthView(APIView):
-    """
-    View to handle Spotify authentication.
-    """
+    """View to handle Spotify authentication."""
+
+    permission_classes = [AllowAny]
+    serializer_class = SpotifyAuthSerializer
+    storage_service = StateStorageService()
+    spotify_service = SpotifyService()
 
     def get(self, request, *args, **kwargs):
         """Get URL for Spotify authentication."""
-        spotify_service = SpotifyService()
-        auth_url, state = spotify_service.get_auth_url()
 
-        request.session["spotify_oauth_state"] = state
-        print(f"Spotify auth state: {state}")
+        state = self.storage_service.generate_oauth_state()
+        auth_url = self.spotify_service.get_auth_url(state)
+        serializer = self.serializer_class({"auth_url": auth_url, "state": state})
 
         return Response(
-            {"auth_url": auth_url, "state": state},
+            serializer.data,
             status=status.HTTP_200_OK,
         )
 
@@ -30,13 +33,19 @@ class SpotifyCallbackView(APIView):
     """
     View to handle Spotify callback after authentication.
     """
+    permission_classes = [AllowAny]
+    serializer_class = SpotifyCallbackSerializer
+    storage_service = StateStorageService()
 
     def get(self, request, *args, **kwargs):
         """Handle Spotify callback."""
 
-        state = request.GET.get("state")
-        code = request.GET.get("code")
-        error = request.GET.get("error")
+        serializer = self.serializer_class(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        state = serializer.validated_data.get("state")
+        code = serializer.validated_data.get("code")
+        error = serializer.validated_data.get("error")
 
         if error:
             return Response(
@@ -50,10 +59,9 @@ class SpotifyCallbackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        print(request.session.items())
-        if state != request.session.get("spotify_oauth_state"):
+        if not self.storage_service.is_valid_oauth_state(state):
             return Response(
-                {"error": "Invalid state parameter."},
+                {"error": "Invalid or expired state parameter."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

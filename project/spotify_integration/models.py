@@ -22,11 +22,9 @@ class SocialCredential(models.Model):
         verbose_name="Social media platform",
     )
     access_token = models.BinaryField(
-        max_length=50, 
+        max_length=50,
     )
-    refresh_token = models.BinaryField(
-        null=True, blank=True, max_length=50
-    )
+    refresh_token = models.BinaryField(null=True, blank=True, max_length=50)
     platform_user_id = models.CharField(
         max_length=256,
         null=True,
@@ -34,7 +32,8 @@ class SocialCredential(models.Model):
         verbose_name="Social media platform user ID",
     )
     expires_at = models.DateTimeField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
