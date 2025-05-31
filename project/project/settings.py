@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+FERNET_KEY = env.str("FERNET_KEY")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -56,7 +57,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S.%fZ',
-    'EXCEPTION_HANDLER': 'spotify_integration.exceptions.custom_exception_handler',
+    # 'EXCEPTION_HANDLER': 'spotify_integration.exceptions.custom_exception_handler',
 }
 
 SESSION_COOKIE_AGE = 86400  # 24 hours

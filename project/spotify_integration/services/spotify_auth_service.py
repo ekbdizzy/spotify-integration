@@ -20,8 +20,6 @@ class SpotifyAuthService:
         except User.DoesNotExist:
             user = self.create_user_from_spotify(spotify_profile)
             created = True
-
-        self.create_or_update_user_credentials(user, token_info)
         return user, created
 
     # todo add pydantic for token info
@@ -31,14 +29,20 @@ class SpotifyAuthService:
         Save or update user's Spotify credentials.
         """
         expires_at = timezone.now() + timedelta(seconds=token_info.get('expires_in', 3600))
-
-        credentials, created = SocialCredential.objects.update_or_create(
+        credentials, created = SocialCredential.objects.get_or_create(
             user=user,
             platform="spotify",
             defaults={
                 'expires_at': expires_at,
+                'platform_user_id': user.username,
             }
         )
+        credentials.access_token_value = token_info["access_token"]
+        if "refresh_token" in token_info:
+            credentials.refresh_token_value = token_info["refresh_token"]
+
+        credentials.expires_at = expires_at
+        credentials.save()
         return credentials
 
     @staticmethod
@@ -47,7 +51,6 @@ class SpotifyAuthService:
         spotify_user_id = spotify_profile["id"]
         email = spotify_profile.get("email")
         display_name = spotify_profile.get("display_name", spotify_user_id)
-
         username = spotify_user_id
 
         user = User.objects.create_user(
