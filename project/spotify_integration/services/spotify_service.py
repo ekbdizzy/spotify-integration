@@ -61,3 +61,4 @@ class SpotifyService:
         if not token_info:
             raise SpotifyApiError("Failed to obtain access token.")
         return token_info
+
