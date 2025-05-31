@@ -140,11 +140,16 @@ LOGGING = {
             'datefmt': '%H:%M:%S',
             'style': '{',
         },
+        'detailed': {
+            'format': '{levelname} {asctime} {pathname}:{lineno} {funcName} - {message}',
+            'datefmt': '%H:%M:%S',
+            'style': '{',
+        }
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'detailed',
         },
     },
     'root': {

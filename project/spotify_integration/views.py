@@ -1,11 +1,12 @@
 from django.contrib.auth import login as django_login, logout
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from spotify_integration.serializers import (SpotifyAuthSerializer,
                                              SpotifyCallbackSerializer)
 from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService
+from spotify_integration.schemes import TokenInfo
 import logging
 
 logger = logging.getLogger("spotify_integration")
@@ -69,7 +70,7 @@ class SpotifyCallbackView(APIView):
             )
 
         try:
-            token_info = self.spotify_service.exchange_code_for_tokens(code)  # TODO add pydantic validation
+            token_info: TokenInfo = self.spotify_service.exchange_code_for_tokens(code)
             user, created = self.auth_service.authenticate_or_create_user(token_info)
             self.auth_service.create_or_update_user_credentials(user, token_info)
             django_login(request, user)

@@ -3,6 +3,7 @@ import spotipy
 from django.contrib.auth.models import User
 from django.utils import timezone
 from spotify_integration.models import SocialCredential
+from spotify_integration.schemes import TokenInfo, SpotifyProfile
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 class SpotifyAuthService:
 
-    def authenticate_or_create_user(self, token_info: dict):
+    def authenticate_or_create_user(self, token_info: TokenInfo) -> tuple[User, bool]:
         """Authenticate or create a user based on the request."""
 
-        client = spotipy.Spotify(auth=token_info["access_token"])
-        spotify_profile = client.current_user()
-        spotify_user_id = spotify_profile["id"]
+        client = spotipy.Spotify(auth=token_info.access_token).current_user()
+        spotify_profile: SpotifyProfile = SpotifyProfile.model_validate(client)
+        spotify_user_id = spotify_profile.id
 
         try:
             user = User.objects.get(username=spotify_user_id)
@@ -25,13 +26,12 @@ class SpotifyAuthService:
             created = True
         return user, created
 
-    # todo add pydantic for token info
     @staticmethod
-    def create_or_update_user_credentials(user, token_info: dict) -> SocialCredential:
+    def create_or_update_user_credentials(user, token_info: TokenInfo) -> SocialCredential:
         """
         Save or update user's Spotify credentials.
         """
-        expires_at = timezone.now() + timedelta(seconds=token_info.get('expires_in', 3600))
+        expires_at = timezone.now() + timedelta(seconds=token_info.expires_in)
         credentials, created = SocialCredential.objects.get_or_create(
             user=user,
             platform="spotify",
@@ -40,9 +40,9 @@ class SpotifyAuthService:
                 'platform_user_id': user.username,
             }
         )
-        credentials.access_token_value = token_info["access_token"]
+        credentials.access_token_value = token_info.access_token
         if "refresh_token" in token_info:
-            credentials.refresh_token_value = token_info["refresh_token"]
+            credentials.refresh_token_value = token_info.refresh_token
 
         credentials.expires_at = expires_at
         credentials.save()
@@ -50,11 +50,11 @@ class SpotifyAuthService:
         return credentials
 
     @staticmethod
-    def create_user_from_spotify(spotify_profile: dict):  # TODO add pydantic schema
+    def create_user_from_spotify(spotify_profile: SpotifyProfile) -> User:
         """Create a user from Spotify profile information."""
-        spotify_user_id = spotify_profile["id"]
-        email = spotify_profile.get("email")
-        display_name = spotify_profile.get("display_name", spotify_user_id)
+        spotify_user_id = spotify_profile.id
+        email = spotify_profile.email
+        display_name = spotify_profile.display_name or spotify_user_id
         username = spotify_user_id
 
         user = User.objects.create_user(

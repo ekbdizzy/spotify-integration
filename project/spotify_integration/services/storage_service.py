@@ -10,14 +10,14 @@ class StateStorageService:
         self.state_prefix = "oauth_state"
         self.state_ttl = settings.REDIS_OAUTH_STATE_EXPIRE
 
-    def generate_oauth_state(self):
+    def generate_oauth_state(self) -> str:
         """Set a unique state for OAuth."""
         state = secrets.token_urlsafe(32)
         key = f"{self.state_prefix}:{state}"
         self.redis_client.setex(key, settings.REDIS_OAUTH_STATE_EXPIRE, state)
         return state
 
-    def is_valid_oauth_state(self, state):
+    def is_valid_oauth_state(self, state: str) -> bool:
         """Validate the OAuth state."""
         key = f"{self.state_prefix}:{state}"
         if self.redis_client.exists(key):

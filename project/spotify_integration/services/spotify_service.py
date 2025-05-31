@@ -1,5 +1,6 @@
 from django.conf import settings
 from spotipy.oauth2 import SpotifyOAuth
+from spotify_integration.schemes import TokenInfo
 
 
 class SpotifyApiError(Exception):
@@ -25,7 +26,7 @@ class SpotifyService:
             ]
         )
 
-    def get_auth_url(self, state: str) -> tuple[str, str]:
+    def get_auth_url(self, state: str) -> str:
         """
         Get url for Spotify authentication.
         """
@@ -40,7 +41,7 @@ class SpotifyService:
         auth_url = sp_oauth.get_authorize_url()
         return auth_url
 
-    def exchange_code_for_tokens(self, code: str) -> dict:
+    def exchange_code_for_tokens(self, code: str) -> TokenInfo:
         """
         Exchange the authorization code for tokens.
         """
@@ -50,7 +51,8 @@ class SpotifyService:
             redirect_uri=self.redirect_uri,
             scope=self.scope,
         )
-        token_info = sp_oauth.get_access_token(code)
-        if not token_info:
+        token_data = sp_oauth.get_access_token(code)
+        if not token_data:
             raise SpotifyApiError("Failed to obtain access token.")
+        token_info = TokenInfo.model_validate(token_data)
         return token_info
