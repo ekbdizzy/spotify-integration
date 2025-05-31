@@ -4,6 +4,8 @@ import spotipy
 from django.conf import settings
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
+from spotify_integration.models import SocialCredential
+
 
 class SpotifyApiError(Exception):
     """Custom exception for Spotify API errors."""
@@ -58,4 +60,17 @@ class SpotifyService:
         if not token_info:
             raise SpotifyApiError("Failed to obtain access token.")
         return token_info
+
+        credential.set_access_token(token_info['access_token'])
+        if 'refresh_token' in token_info:
+            credential.set_refresh_token(token_info['refresh_token'])
+
+        # Get user's Spotify ID if not already set
+        if not credential.platform_user_id:
+            client = spotipy.Spotify(auth=token_info['access_token'])
+            spotify_user = client.current_user()
+            credential.platform_user_id = spotify_user['id']
+
+        credential.save()
+        return credential
 

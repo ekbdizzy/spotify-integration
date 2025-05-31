@@ -43,4 +43,6 @@ class SocialCredential(models.Model):
         unique_together = ["user", "platform"]
 
     def __str__(self):
-        return f"{self.provider} credential for {self.user.username}"
+        return f"{self.platform} credential for {self.user.username}"
+
+

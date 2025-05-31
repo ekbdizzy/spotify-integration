@@ -36,6 +36,8 @@ class SpotifyCallbackView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SpotifyCallbackSerializer
     storage_service = StateStorageService()
+    spotify_service = SpotifyService()
+    auth_service = SpotifyAuthService()
 
     def get(self, request, *args, **kwargs):
         """Handle Spotify callback."""
@@ -66,11 +68,8 @@ class SpotifyCallbackView(APIView):
             )
 
         try:
-            spotify_service = SpotifyService()
-            auth_service = SpotifyAuthService()
-
-            token_info = spotify_service.exchange_code_for_tokens(code)
-            user, created = auth_service.authenticate_or_create_user(token_info)
+            token_info = self.spotify_service.exchange_code_for_tokens(code)  # TODO add pydantic validation
+            user, created = self.auth_service.authenticate_or_create_user(token_info)
             django_login(request, user)
 
             # TODO start a background task to sync the user's Spotify data
@@ -84,9 +83,6 @@ class SpotifyCallbackView(APIView):
 
         except:
             pass
-
-        finally:
-            request.session.pop("spotify_oauth_state", None)
 
         return Response(
             {"message": "Spotify authentication successful."},

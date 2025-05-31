@@ -1,12 +1,11 @@
+from datetime import timedelta
 import spotipy
 from django.contrib.auth.models import User
+from django.utils import timezone
 from spotify_integration.models import SocialCredential
-from spotify_integration.services.spotify_service import SpotifyService
 
 
 class SpotifyAuthService:
-    def __init__(self):
-        self.spotify_service = SpotifyService()
 
     def authenticate_or_create_user(self, token_info: dict):
         """Authenticate or create a user based on the request."""
@@ -16,20 +15,34 @@ class SpotifyAuthService:
         spotify_user_id = spotify_profile["id"]
 
         try:
-            credentials = SocialCredential.objects.get(
-                platform_user_id=spotify_user_id, platform="spotify"
-            )
-            user = credentials.user
+            user = User.objects.get(username=spotify_user_id)
             created = False
-
-        except SocialCredential.DoesNotExist:
-            user = self._create_user_from_spotify(spotify_profile)
+        except User.DoesNotExist:
+            user = self.create_user_from_spotify(spotify_profile)
             created = True
 
-        self.spotify_service.save_user_credentials(user, token_info)
+        self.create_or_update_user_credentials(user, token_info)
         return user, created
 
-    def _create_user_from_spotify(self, spotify_profile: dict):
+    # todo add pydantic for token info
+    @staticmethod
+    def create_or_update_user_credentials(user, token_info: dict) -> SocialCredential:
+        """
+        Save or update user's Spotify credentials.
+        """
+        expires_at = timezone.now() + timedelta(seconds=token_info.get('expires_in', 3600))
+
+        credentials, created = SocialCredential.objects.update_or_create(
+            user=user,
+            platform="spotify",
+            defaults={
+                'expires_at': expires_at,
+            }
+        )
+        return credentials
+
+    @staticmethod
+    def create_user_from_spotify(spotify_profile: dict):  # TODO add pydantic schema
         """Create a user from Spotify profile information."""
         spotify_user_id = spotify_profile["id"]
         email = spotify_profile.get("email")
@@ -45,3 +58,4 @@ class SpotifyAuthService:
         )
         user.set_unusable_password()
         user.save()
+        return user
