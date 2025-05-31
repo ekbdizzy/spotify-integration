@@ -1,4 +1,4 @@
-from django.contrib.auth import login as django_login
+from django.contrib.auth import login as django_login, logout
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -11,7 +11,6 @@ from spotify_integration.services import SpotifyAuthService, SpotifyService, Sta
 class SpotifyAuthView(APIView):
     """View to handle Spotify authentication."""
 
-    permission_classes = [AllowAny]
     serializer_class = SpotifyAuthSerializer
     storage_service = StateStorageService()
     spotify_service = SpotifyService()
@@ -33,7 +32,6 @@ class SpotifyCallbackView(APIView):
     """
     View to handle Spotify callback after authentication.
     """
-    permission_classes = [AllowAny]
     serializer_class = SpotifyCallbackSerializer
     storage_service = StateStorageService()
     spotify_service = SpotifyService()
@@ -86,3 +84,31 @@ class SpotifyCallbackView(APIView):
             {"message": "Spotify authentication successful."},
             status=status.HTTP_200_OK,
         )
+
+
+class SpotifyDisconnectView(APIView):
+    """View to disconnect Spotify account."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """Disconnect Spotify account."""
+        try:
+            credential = request.user.social_credentials.filter(platform="spotify").first()
+            if credential:
+                credential.delete()
+                logout(request)
+                return Response(
+                    {"message": "Spotify account disconnected successfully."},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {"error": "No Spotify account connected."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
