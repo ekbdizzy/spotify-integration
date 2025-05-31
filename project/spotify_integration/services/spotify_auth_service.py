@@ -3,6 +3,9 @@ import spotipy
 from django.contrib.auth.models import User
 from django.utils import timezone
 from spotify_integration.models import SocialCredential
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SpotifyAuthService:
@@ -43,6 +46,7 @@ class SpotifyAuthService:
 
         credentials.expires_at = expires_at
         credentials.save()
+        logger.info(f"{'Created' if created else 'Updated'} Spotify credentials for user: {user.username}")
         return credentials
 
     @staticmethod
@@ -61,4 +65,5 @@ class SpotifyAuthService:
         )
         user.set_unusable_password()
         user.save()
+        logger.info(f"Created new user: {user.username} from Spotify profile.")
         return user

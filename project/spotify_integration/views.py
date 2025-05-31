@@ -6,6 +6,9 @@ from rest_framework.views import APIView
 from spotify_integration.serializers import (SpotifyAuthSerializer,
                                              SpotifyCallbackSerializer)
 from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService
+import logging
+
+logger = logging.getLogger("spotify_integration")
 
 
 class SpotifyAuthView(APIView):
@@ -44,12 +47,14 @@ class SpotifyCallbackView(APIView):
         serializer.is_valid(raise_exception=True)
 
         if error := serializer.validated_data.get("error"):
+            logger.error(f"Spotify authentication error: {error}")
             return Response(
                 {"error": error},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not (code := serializer.validated_data.get("code")):
+            logger.error(f"Spotify authentication error: {code}")
             return Response(
                 {"error": "Missing code parameter."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -57,6 +62,7 @@ class SpotifyCallbackView(APIView):
 
         state = serializer.validated_data.get("state")
         if not self.storage_service.is_valid_oauth_state(state):
+            logger.error(f"Invalid or expired state parameter: {state}")
             return Response(
                 {"error": "Invalid or expired state parameter."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -78,7 +84,11 @@ class SpotifyCallbackView(APIView):
             )
 
         except Exception as e:
-            raise e
+            logger.error(f"Spotify authentication error: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(
             {"message": "Spotify authentication successful."},
@@ -97,6 +107,7 @@ class SpotifyDisconnectView(APIView):
             credential = request.user.social_credentials.filter(platform="spotify").first()
             if credential:
                 credential.delete()
+                logger.info(f"Spotify disconnected for user: {request.user.username}")
                 logout(request)
                 return Response(
                     {"message": "Spotify account disconnected successfully."},
@@ -108,6 +119,7 @@ class SpotifyDisconnectView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         except Exception as e:
+            logger.error(f"Spotify disconnect error: {e}")
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
