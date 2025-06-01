@@ -62,3 +62,20 @@ class SpotifyService:
             raise SpotifyApiError("Failed to obtain access token.")
         token_info = TokenInfo.model_validate(token_data)
         return token_info
+
+    def refresh_access_token(self, refresh_token: str) -> TokenInfo:
+        """
+        Refresh the access token using the refresh token.
+        """
+        sp_oauth = SpotifyOAuth(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            redirect_uri=self.redirect_uri,
+            scope=self.scope,
+        )
+        token_data = sp_oauth.refresh_access_token(refresh_token)
+        if not token_data:
+            logger.warning("No token returned from Spotify during refresh")
+            raise SpotifyApiError("Failed to refresh access token.")
+        token_info = TokenInfo.model_validate(token_data)
+        return token_info

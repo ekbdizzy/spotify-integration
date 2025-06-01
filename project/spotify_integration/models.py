@@ -88,7 +88,7 @@ class SocialCredential(models.Model, EncryptedFieldMixin):
     def refresh_token_value(self):
         """Decrypt and return the refresh token."""
         if self.refresh_token:
-            return self.decrypt_token(self.refresh_token)
+            return self.decrypt_token(bytes(self.refresh_token))
         return None
 
     @refresh_token_value.setter

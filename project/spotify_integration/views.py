@@ -3,6 +3,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from spotify_integration.models import SocialCredential
 from spotify_integration.serializers import (SpotifyAuthSerializer,
                                              SpotifyCallbackSerializer)
 from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService, SpotifyDataService
@@ -123,6 +125,44 @@ class SpotifyDisconnectView(APIView):
                 )
         except Exception as e:
             logger.error(f"Spotify disconnect error: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class SpotifyRefreshView(APIView):
+    """View to refresh Spotify access token."""
+
+    permission_classes = [IsAuthenticated]
+    spotify_service = SpotifyService()
+    auth_service = SpotifyAuthService()
+
+    def post(self, request, *args, **kwargs):
+        """Refresh Spotify access token."""
+        try:
+            credentials = SocialCredential.objects.filter(user_id=request.user.id, platform="spotify").first()
+            if credentials is None:
+                return Response(
+                    {"error": "No Spotify account connected."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if credentials.refresh_token is None:
+                return Response(
+                    {"error": "No refresh token available."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            token_info: TokenInfo = self.spotify_service.refresh_access_token(credentials.refresh_token_value)
+            self.auth_service.create_or_update_user_credentials(request.user, token_info)
+
+            return Response(
+                {"message": "Spotify access token refreshed successfully."},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            logger.error(f"Spotify refresh error: {e}", exc_info=True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
