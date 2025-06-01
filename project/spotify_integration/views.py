@@ -142,8 +142,15 @@ class SpotifyTrackListView(APIView):
 
         try:
             access_token = auth_service.get_access_token(request.user)
-            tracks_data = data_service.fetch_user_tracks(access_token)
-            return success_response(data=tracks_data)
+            tracks_spotify_data = data_service.fetch_user_tracks(access_token)
+            social_posts = data_service.map_tracks_to_social_posts(request.user, tracks_spotify_data)
+            bulk_update = data_service.bulk_update_social_posts(
+                user=request.user,
+                platform="spotify",
+                post_type="tracks",
+                social_posts=social_posts)
+
+            print(social_posts)
 
         except ValueError as e:
             # TODO update credentials if expired
@@ -154,3 +161,5 @@ class SpotifyTrackListView(APIView):
                 message=f"Error fetching Spotify tracks: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+        return success_response()

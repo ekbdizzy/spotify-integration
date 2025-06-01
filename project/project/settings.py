@@ -9,6 +9,7 @@ SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 FERNET_KEY = env.str("FERNET_KEY")
+BATCH_SIZE = env.int("BATCH_SIZE", default=500)  # Default batch size for bulk operations
 LOGIN_REDIRECT_URL = '/'  # Redirect here after successful login
 LOGOUT_REDIRECT_URL = '/'  # Redirect here after logout
 

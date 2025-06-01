@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class TokenInfo(BaseModel):
@@ -26,3 +27,35 @@ class SpotifyProfile(BaseModel):
     model_config = {
         "extra": "ignore"
     }
+
+
+class Image(BaseModel):
+    height: int
+    width: int
+    url: str
+
+
+class SocialVideo(BaseModel):
+    url: str  # Link to video
+    thumbnail_url: str | None = None  # Thumbnail image URL (optional)
+    title: str | None = None  # Title of the video (optional)
+    description: str | None = None  # Description of the video (optional)
+
+
+class SocialLink(BaseModel):
+    url: str  # Link to external resource
+    platform: str | None = None  # Title of the link (optional)
+
+
+class SocialPostScheme(BaseModel):
+    platform: str  # spotify
+    external_id: str  # External post id
+    external_url: str  # Link to entity (song, artist, etc...) on Spotify
+    external_username: str  # Username of authorised user
+    external_user_url: str  # Link to user's profile on Spotify
+    posted_at: datetime  # Date of event
+    title: str | None = None  # Title (different for different events) (optional)
+    text: str | None = None  # Text (different for different events) (optional)
+    videos_url: list[SocialVideo] = None
+    images_url: list[Image] | None = None
+    links_url: list[SocialLink] | None = None

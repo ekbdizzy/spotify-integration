@@ -1,5 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from django.contrib.auth.models import User
+from spotify_integration.models import SocialPost
+from spotify_integration.schemes import SocialPostScheme
 from spotify_integration.services.spotify_service import SpotifyApiError
 import logging
 import requests
@@ -20,7 +23,7 @@ class SpotifyDataService:
                                 })
         return response.json()
 
-    def fetch_user_tracks(self, access_token: str) -> dict:
+    def fetch_user_tracks(self, access_token: str) -> list:
         """Fetch user's tracks from Spotify.
         Try to fetch first page and remaining pages in async mode if user has more than one page data."""
         limit = settings.DEFAULT_LIMIT
@@ -49,7 +52,58 @@ class SpotifyDataService:
                         page_data = future.result()
                         if page_data.get("items"):
                             tracks.extend(page_data["items"])
-            return {"count": total_count, "tracks_len": len(tracks), "tracks": tracks}
+            return tracks
         except requests.RequestException as e:
             logger.error(f"Error fetching user tracks: {e}")
             raise SpotifyApiError("Failed to fetch user tracks from Spotify.")
+
+    def map_tracks_to_social_posts(self, user: User, tracks: list) -> list[SocialPostScheme]:
+        """Map Spotify tracks to social post data."""
+
+        result = []
+
+        for track in tracks:
+            platform = "spotify"
+            external_id = f"track_{track["track"]["id"]}"
+            external_url = track["track"]["external_urls"]["spotify"]
+            external_user_url = f"https://open.spotify.com/user/{user.username}"
+            posted_at = track["added_at"]
+            title = track["track"]["name"]
+            images_url = [
+                {
+                    "height": img["height"],
+                    "width": img["width"],
+                    "url": img["url"]
+                } for img in track["track"]["album"]["images"]
+            ] if track["track"]["album"]["images"] else None
+            result.append(SocialPostScheme(
+                platform=platform,
+                external_id=external_id,
+                external_url=external_url,
+                external_username=user.username,
+                external_user_url=external_user_url,
+                posted_at=posted_at,
+                title=title,
+                images_url=images_url
+            ))
+        return result
+
+    def bulk_update_social_posts(self,
+                                 user: User,
+                                 platform: str,
+                                 post_type: str,
+                                 social_posts: list[SocialPostScheme]
+                                 ) -> None:
+        """Bulk update social posts in the database."""
+
+        if not social_posts:
+            SocialPost.objects.filter(platform=platform, post_type=post_type, user=user).delete()
+            return
+
+        SocialPost.bulk_update_social_posts(
+            user=user,
+            platform=platform,
+            post_type=post_type,
+            social_posts=social_posts
+        )
+        logger.info(f"Bulk updated {len(social_posts)} social posts for user {user.username}.")
