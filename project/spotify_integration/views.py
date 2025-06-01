@@ -9,7 +9,11 @@ from spotify_integration.services import SpotifyAuthService, SpotifyService, Sta
 from spotify_integration.schemes import TokenInfo
 import logging
 
-from spotify_integration.tasks import fetch_spotify_tracks_task
+from spotify_integration.tasks import (
+    fetch_spotify_tracks_task,
+    fetch_spotify_playlists_task,
+    fetch_spotify_following_task
+)
 
 logger = logging.getLogger("spotify_integration")
 
@@ -160,12 +164,9 @@ class SpotifyPlaylistsSyncView(APIView):
     """Trigger background fetch of Spotify tracks."""
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     fetch_spotify_tracks_task.delay(request.user.id)
-    #     return Response(
-    #         {"message": "Spotify track fetch task started."},
-    #         status=status.HTTP_202_ACCEPTED
-    #     )
+    def get(self, request, *args, **kwargs):
+        fetch_spotify_playlists_task.delay(request.user.id)
+        return success_response(message="Spotify tracks sync started.", status_code=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
         """Fetch Spotify playlists."""
@@ -196,12 +197,9 @@ class SpotifyFollowingSyncView(APIView):
     """Trigger background fetch of Spotify followings artists."""
     permission_classes = [IsAuthenticated]
 
-    # def post(self, request, *args, **kwargs):
-    #     fetch_spotify_tracks_task.delay(request.user.id)
-    #     return Response(
-    #         {"message": "Spotify track fetch task started."},
-    #         status=status.HTTP_202_ACCEPTED
-    #     )
+    def get(self, request, *args, **kwargs):
+        fetch_spotify_following_task.delay(request.user.id)
+        return success_response(message="Spotify following sync started.", status_code=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
         """Fetch Spotify tracks."""
