@@ -11,5 +11,5 @@ urlpatterns = [
 
     path("sync/tracks/", views.SpotifyTracksSyncView.as_view(), name="spotify_track_list"),
     path("sync/playlists/", views.SpotifyPlaylistsSyncView.as_view(), name="spotify_track_list"),
-    # path("sync/follows/", views.SpotifyTrackListView.as_view(), name="spotify_track_list"),
+    path("sync/following/", views.SpotifyFollowingSyncView.as_view(), name="spotify_track_list"),
 ]

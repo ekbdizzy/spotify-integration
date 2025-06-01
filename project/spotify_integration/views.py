@@ -144,15 +144,11 @@ class SpotifyTracksSyncView(APIView):
             access_token = auth_service.get_access_token(request.user)
             tracks_spotify_data = data_service.fetch_user_tracks(access_token)
             social_posts = data_service.map_tracks_to_social_posts(request.user, tracks_spotify_data)
-            bulk_update = data_service.bulk_update_social_posts(
+            data_service.bulk_update_social_posts(
                 user=request.user,
                 platform="spotify",
                 post_type="tracks",
                 social_posts=social_posts)
-
-        except ValueError as e:
-            # TODO update credentials if expired
-            pass
 
         except Exception as e:
             return error_response(
@@ -175,7 +171,7 @@ class SpotifyPlaylistsSyncView(APIView):
     #     )
 
     def post(self, request, *args, **kwargs):
-        """Fetch Spotify tracks."""
+        """Fetch Spotify playlists."""
 
         data_service = SpotifyDataService()
         auth_service = SpotifyAuthService()
@@ -190,15 +186,46 @@ class SpotifyPlaylistsSyncView(APIView):
                 post_type="playlists",
                 social_posts=social_posts)
 
-        except ValueError as e:
-            # TODO update credentials if expired
-            raise ValueError(e)
-            # pass
-
         except Exception as e:
             return error_response(
-                message=f"Error fetching Spotify tracks: {e}",
+                message=f"Error fetching Spotify playlists: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         return success_response(data=playlists_spotify_data, message="Spotify playlists fetched successfully.")
+
+
+class SpotifyFollowingSyncView(APIView):
+    """Trigger background fetch of Spotify followings."""
+    permission_classes = [IsAuthenticated]
+
+    # def get(self, request, *args, **kwargs):
+    #     fetch_spotify_tracks_task.delay(request.user.id)
+    #     return Response(
+    #         {"message": "Spotify track fetch task started."},
+    #         status=status.HTTP_202_ACCEPTED
+    #     )
+
+    def post(self, request, *args, **kwargs):
+        """Fetch Spotify tracks."""
+
+        data_service = SpotifyDataService()
+        auth_service = SpotifyAuthService()
+
+        try:
+            access_token = auth_service.get_access_token(request.user)
+            following_spotify_data = data_service.fetch_user_following(access_token)
+            social_posts = data_service.map_playlists_to_social_posts(request.user, following_spotify_data)
+            data_service.bulk_update_social_posts(
+                user=request.user,
+                platform="spotify",
+                post_type="artists",
+                social_posts=social_posts)
+
+        except Exception as e:
+            return error_response(
+                message=f"Error fetching Spotify following: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return success_response(data=following_spotify_data, message="Spotify following fetched successfully.")
