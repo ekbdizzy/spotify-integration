@@ -1,7 +1,9 @@
+import logging
+
 from django.conf import settings
 from spotipy.oauth2 import SpotifyOAuth
+
 from spotify_integration.schemes import TokenInfo
-import logging
 
 logger = logging.getLogger(__name__)
 

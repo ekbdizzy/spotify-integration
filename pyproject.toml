@@ -14,6 +14,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.5",
     "redis>=6.2.0",
+    "ruff>=0.11.12",
     "spotipy>=2.25.1",
 ]
 
@@ -24,3 +25,12 @@ dev = [
 prod = [
     "gunicorn>=23.0.0",
 ]
+[tool.ruff]
+line-length = 120
+exclude = [
+    "*/migrations/*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []

@@ -2,9 +2,10 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from spotify_integration.services import SpotifyDataService, SpotifyAuthService, SpotifyService
-from spotify_integration.models import SocialCredential
+from django.db.models import Q
 
+from spotify_integration.models import SocialCredential
+from spotify_integration.services import SpotifyAuthService, SpotifyDataService, SpotifyService
 from spotify_integration.services.spotify_service import SpotifyApiError
 
 User = get_user_model()
@@ -130,3 +131,43 @@ def refresh_access_token_task(self, user_id: int):
     except Exception as e:
         logging.error(f"Spotify refresh token error for user {user_id}: {e}", exc_info=True)
         raise self.retry(exc=e)
+
+
+@shared_task
+def refresh_all_spotify_tokens_task():
+    """Refresh access tokens for all users with Spotify credentials."""
+    spotify_service = SpotifyService()
+    auth_service = SpotifyAuthService()
+
+    credentials = SocialCredential.objects.filter(
+        platform="spotify"
+    ).filter(
+        ~Q(refresh_token=b""),
+        refresh_token__isnull=False
+    )
+    for credential in credentials:
+        try:
+            token_info = spotify_service.refresh_access_token(credential.refresh_token_value)
+            auth_service.create_or_update_user_credentials(credential.user, token_info)
+            logging.info(f"Refreshed Spotify access token for user {credential.user.id} successfully.")
+        except Exception as e:
+            logging.error(f"Error refreshing Spotify token for user {credential.user.id}: {e}", exc_info=True)
+
+
+@shared_task
+def fetch_all_spotify_data_task():
+    """Fetch Spotify data for all users with Spotify credentials."""
+    users = SocialCredential.objects.filter(
+        platform="spotify"
+    ).filter(
+        ~Q(refresh_token=b""),
+        refresh_token__isnull=False
+    ).values_list("user_id", flat=True)
+    for user_id in users:
+        try:
+            fetch_spotify_tracks_task.delay(user_id)
+            fetch_spotify_playlists_task.delay(user_id)
+            fetch_spotify_following_task.delay(user_id)
+            logging.info(f"Started fetching Spotify data for user {user_id}.")
+        except Exception as e:
+            logging.error(f"Error fetching Spotify data for user {user_id}: {e}", exc_info=True)

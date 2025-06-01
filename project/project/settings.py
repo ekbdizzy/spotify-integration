@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from environs import Env
 
 env = Env()
@@ -8,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
-FERNET_KEY = env.str("FERNET_KEY")
+FERNET_KEY = env.str("FERNET_KEY")  # Fernet key for encrypting sensitive data (access tokens, etc.)
 BATCH_SIZE = env.int("BATCH_SIZE", default=500)  # Default batch size for bulk operations
 LOGIN_REDIRECT_URL = '/'  # Redirect here after successful login
 LOGOUT_REDIRECT_URL = '/'  # Redirect here after logout
@@ -34,6 +35,10 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
 
+# Celery Beat Configuration
+REFRESH_ALL_SPOTIFY_TOKENS = env.int('REFRESH_ALL_SPOTIFY_TOKENS', 1500)  # Default 25 minutes.
+FETCH_ALL_SPOTIFY_DATA = env.int('FETCH_ALL_SPOTIFY_DATA', 1800)  # Default 30 minutes.
+
 # Spotify Integration Settings
 SPOTIFY_CLIENT_ID = env.str("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = env.str("SPOTIFY_CLIENT_SECRET")
@@ -42,7 +47,7 @@ DEFAULT_LIMIT = 50  # Default limit for paginated responses
 MAX_THREADS = 10  # Maximum number of threads for concurrent requests
 
 REDIS_URL = env.str("REDIS_URL")
-REDIS_OAUTH_STATE_EXPIRE = 60  # 60 seconds
+REDIS_OAUTH_STATE_EXPIRE = 60  # 60 seconds for OAuth state expiration
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -52,16 +57,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.OrderingFilter',
-    ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S.%fZ',
-    # 'EXCEPTION_HANDLER': 'spotify_integration.exceptions.custom_exception_handler',
 }
 
 SESSION_COOKIE_AGE = 86400  # 24 hours
@@ -99,12 +99,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        # postgresql://user:password@localhost:5432/dbname
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': env.str("POSTGRES_DB"),
         'USER': env.str("POSTGRES_USER"),

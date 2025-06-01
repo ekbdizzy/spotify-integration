@@ -1,18 +1,20 @@
-from django.contrib.auth import login as django_login, logout
+import logging
+
+from django.contrib.auth import login as django_login
+from django.contrib.auth import logout
+from response_handlers import error_response, success_response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from response_handlers import success_response, error_response
-from spotify_integration.models import SocialCredential
-from spotify_integration.serializers import SpotifyAuthSerializer, SpotifyCallbackSerializer
-from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService, SpotifyDataService
-from spotify_integration.schemes import TokenInfo
-import logging
 
+from spotify_integration.models import SocialCredential
+from spotify_integration.schemes import TokenInfo
+from spotify_integration.serializers import SpotifyAuthSerializer, SpotifyCallbackSerializer
+from spotify_integration.services import SpotifyAuthService, SpotifyDataService, SpotifyService, StateStorageService
 from spotify_integration.tasks import (
-    fetch_spotify_tracks_task,
+    fetch_spotify_following_task,
     fetch_spotify_playlists_task,
-    fetch_spotify_following_task
+    fetch_spotify_tracks_task,
 )
 
 logger = logging.getLogger("spotify_integration")
@@ -66,7 +68,10 @@ class SpotifyCallbackView(APIView):
             self.auth_service.create_or_update_user_credentials(user, token_info)
             django_login(request, user)
 
-            # TODO start a background task to sync the user's Spotify data
+            # Trigger background tasks to fetch Spotify data
+            fetch_spotify_tracks_task.delay(request.user.id)
+            fetch_spotify_playlists_task.delay(request.user.id)
+            fetch_spotify_following_task.delay(request.user.id)
 
         except Exception as e:
             return error_response(
@@ -131,10 +136,6 @@ class SpotifyTracksSyncView(APIView):
     """Trigger background fetch of Spotify tracks."""
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        fetch_spotify_tracks_task.delay(request.user.id)
-        return success_response(message="Spotify tracks sync started.", status_code=status.HTTP_202_ACCEPTED)
-
     def post(self, request, *args, **kwargs):
         """Fetch Spotify tracks."""
 
@@ -164,10 +165,6 @@ class SpotifyPlaylistsSyncView(APIView):
     """Trigger background fetch of Spotify tracks."""
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        fetch_spotify_playlists_task.delay(request.user.id)
-        return success_response(message="Spotify tracks sync started.", status_code=status.HTTP_202_ACCEPTED)
-
     def post(self, request, *args, **kwargs):
         """Fetch Spotify playlists."""
 
@@ -196,10 +193,6 @@ class SpotifyPlaylistsSyncView(APIView):
 class SpotifyFollowingSyncView(APIView):
     """Trigger background fetch of Spotify followings artists."""
     permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        fetch_spotify_following_task.delay(request.user.id)
-        return success_response(message="Spotify following sync started.", status_code=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
         """Fetch Spotify tracks."""

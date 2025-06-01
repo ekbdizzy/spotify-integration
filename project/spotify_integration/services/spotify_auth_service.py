@@ -1,10 +1,12 @@
+import logging
 from datetime import timedelta
+
 import spotipy
 from django.contrib.auth.models import User
 from django.utils import timezone
+
 from spotify_integration.models import SocialCredential
-from spotify_integration.schemes import TokenInfo, SpotifyProfile
-import logging
+from spotify_integration.schemes import SpotifyProfile, TokenInfo
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +19,9 @@ class SpotifyAuthService:
 
         client = spotipy.Spotify(auth=token_info.access_token).current_user()
         spotify_profile: SpotifyProfile = SpotifyProfile.model_validate(client)
-        spotify_user_id = spotify_profile.id
 
         try:
-            user = User.objects.get(username=spotify_user_id)
+            user = User.objects.get(username=spotify_profile.id)
             created = False
         except User.DoesNotExist:
             user = self.create_user_from_spotify(spotify_profile)

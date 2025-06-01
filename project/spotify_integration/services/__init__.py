@@ -1,7 +1,7 @@
-from .spotify_service import SpotifyService
 from .spotify_auth_service import SpotifyAuthService
-from .storage_service import StateStorageService
 from .spotify_data_service import SpotifyDataService
+from .spotify_service import SpotifyService
+from .storage_service import StateStorageService
 
 __all__ = [
     "SpotifyService",

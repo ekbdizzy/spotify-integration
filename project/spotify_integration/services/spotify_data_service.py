@@ -1,11 +1,13 @@
+import logging
 from concurrent.futures import ThreadPoolExecutor
+
+import requests
 from django.conf import settings
 from django.contrib.auth.models import User
+
 from spotify_integration.models import SocialPost
 from spotify_integration.schemes import SocialPostScheme
 from spotify_integration.services.spotify_service import SpotifyApiError
-import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,8 @@ class SpotifyDataService:
                 logger.error(f"Spotify API error: {error_status} - {error_message}")
                 raise SpotifyApiError(f"Spotify API error: {error_message} (status: {error_status})")
                 logger.error(
-                    f"Error fetching user tracks: {first_page_data.get('error', {}).get('message', 'Unknown error')}",
+                    f"Error fetching user tracks: {first_page_data.get('error', {})
+                    .get('message', 'Unknown error')}",
                     exc_info=True)
                 raise SpotifyApiError("Failed to fetch user tracks from Spotify.")
 

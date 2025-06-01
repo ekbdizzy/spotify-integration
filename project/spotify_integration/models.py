@@ -1,8 +1,8 @@
-from django.conf import settings
-from django.db import models, transaction
-from django.contrib.auth.models import User
-from django.utils import timezone
 from cryptography.fernet import Fernet
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db import models, transaction
+from django.utils import timezone
 
 from spotify_integration.schemes import SocialPostScheme
 
@@ -114,10 +114,9 @@ class SocialPost(models.Model):
     """Model to store social media posts."""
 
     POST_TYPE_CHOICES = [
-        ("track", "Track"),
-        ("album", "Album"),
-        ("artist", "Artist"),
-        ("follow", "Follow"),
+        ("tracks", "Tracks"),
+        ("playlists", "Playlists"),
+        ("following", "Follows"),
     ]
 
     user = models.ForeignKey(

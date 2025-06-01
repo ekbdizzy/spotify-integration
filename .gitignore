@@ -12,6 +12,7 @@ wheels/
 *.sqlite3
 
 # Celery files
+**/.cache
 celerybeat-schedule
 celerybeat.pid
 
