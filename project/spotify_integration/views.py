@@ -123,7 +123,7 @@ class SpotifyRefreshView(APIView):
         return success_response(message="Spotify refresh access token successful.")
 
 
-class SpotifyTrackListView(APIView):
+class SpotifyTracksSyncView(APIView):
     """Trigger background fetch of Spotify tracks."""
     permission_classes = [IsAuthenticated]
 
@@ -134,7 +134,7 @@ class SpotifyTrackListView(APIView):
     #         status=status.HTTP_202_ACCEPTED
     #     )
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """Fetch Spotify tracks."""
 
         data_service = SpotifyDataService()
@@ -150,8 +150,6 @@ class SpotifyTrackListView(APIView):
                 post_type="tracks",
                 social_posts=social_posts)
 
-            print(social_posts)
-
         except ValueError as e:
             # TODO update credentials if expired
             pass
@@ -163,3 +161,44 @@ class SpotifyTrackListView(APIView):
             )
 
         return success_response()
+
+
+class SpotifyPlaylistsSyncView(APIView):
+    """Trigger background fetch of Spotify tracks."""
+    permission_classes = [IsAuthenticated]
+
+    # def get(self, request, *args, **kwargs):
+    #     fetch_spotify_tracks_task.delay(request.user.id)
+    #     return Response(
+    #         {"message": "Spotify track fetch task started."},
+    #         status=status.HTTP_202_ACCEPTED
+    #     )
+
+    def post(self, request, *args, **kwargs):
+        """Fetch Spotify tracks."""
+
+        data_service = SpotifyDataService()
+        auth_service = SpotifyAuthService()
+
+        try:
+            access_token = auth_service.get_access_token(request.user)
+            playlists_spotify_data = data_service.fetch_user_playlists(access_token)
+            social_posts = data_service.map_playlists_to_social_posts(request.user, playlists_spotify_data)
+            data_service.bulk_update_social_posts(
+                user=request.user,
+                platform="spotify",
+                post_type="playlists",
+                social_posts=social_posts)
+
+        except ValueError as e:
+            # TODO update credentials if expired
+            raise ValueError(e)
+            # pass
+
+        except Exception as e:
+            return error_response(
+                message=f"Error fetching Spotify tracks: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return success_response(data=playlists_spotify_data, message="Spotify playlists fetched successfully.")

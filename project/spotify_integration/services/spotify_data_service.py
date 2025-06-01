@@ -57,6 +57,37 @@ class SpotifyDataService:
             logger.error(f"Error fetching user tracks: {e}")
             raise SpotifyApiError("Failed to fetch user tracks from Spotify.")
 
+    def fetch_user_playlists(self, access_token: str) -> list:
+        """Fetch all user playlists from Spotify, handling pagination."""
+        limit = settings.DEFAULT_LIMIT
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        url = "https://api.spotify.com/v1/me/playlists"
+        params = {"limit": limit, "offset": 0}
+
+        all_items = []
+
+        try:
+            while url:
+                response = requests.get(url, headers=headers, params=params)
+                if response.status_code != 200:
+                    error_msg = response.json().get("error", {}).get("message", "Unknown error")
+                    logger.error(f"Error fetching user playlists: {error_msg}")
+                    raise SpotifyApiError("Failed to fetch user playlists from Spotify.")
+
+                data = response.json()
+                all_items.extend(data.get("items", []))
+                url = data.get("next")  # Spotify provides full URL for the next page
+                params = None  # Clear params since `url` includes them now
+
+            return all_items
+
+        except requests.RequestException as e:
+            logger.error(f"Network error fetching user playlists: {e}")
+            raise SpotifyApiError("Failed to fetch user playlists from Spotify.")
+
     def map_tracks_to_social_posts(self, user: User, tracks: list) -> list[SocialPostScheme]:
         """Map Spotify tracks to social post data."""
 
@@ -76,6 +107,37 @@ class SpotifyDataService:
                     "url": img["url"]
                 } for img in track["track"]["album"]["images"]
             ] if track["track"]["album"]["images"] else None
+            result.append(SocialPostScheme(
+                platform=platform,
+                external_id=external_id,
+                external_url=external_url,
+                external_username=user.username,
+                external_user_url=external_user_url,
+                posted_at=posted_at,
+                title=title,
+                images_url=images_url
+            ))
+        return result
+
+    def map_playlists_to_social_posts(self, user: User, playlists: list) -> list[SocialPostScheme]:
+        """Map Spotify tracks to social post data."""
+
+        result = []
+
+        for playlist in playlists:
+            platform = "spotify"
+            external_id = f"playlist_{playlist["id"]}"
+            external_url = playlist["href"]
+            external_user_url = f"https://open.spotify.com/user/{user.username}"
+            posted_at = None
+            title = playlist["name"]
+            images_url = [
+                {
+                    "height": img["height"],
+                    "width": img["width"],
+                    "url": img["url"]
+                } for img in playlist["images"]
+            ] if playlist["images"] else None
             result.append(SocialPostScheme(
                 platform=platform,
                 external_id=external_id,

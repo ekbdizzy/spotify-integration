@@ -30,8 +30,8 @@ class SpotifyProfile(BaseModel):
 
 
 class Image(BaseModel):
-    height: int
-    width: int
+    height: int | None = None
+    width: int | None = None
     url: str
 
 
@@ -53,7 +53,7 @@ class SocialPostScheme(BaseModel):
     external_url: str  # Link to entity (song, artist, etc...) on Spotify
     external_username: str  # Username of authorised user
     external_user_url: str  # Link to user's profile on Spotify
-    posted_at: datetime  # Date of event
+    posted_at: datetime | None = None  # Date of event
     title: str | None = None  # Title (different for different events) (optional)
     text: str | None = None  # Text (different for different events) (optional)
     videos_url: list[SocialVideo] = None

@@ -9,5 +9,7 @@ urlpatterns = [
     path("refresh/", views.SpotifyRefreshView.as_view(), name="spotify_refresh"),
     path("disconnect/", views.SpotifyDisconnectView.as_view(), name="spotify_disconnect"),
 
-    path("tracks/", views.SpotifyTrackListView.as_view(), name="spotify_track_list"),
+    path("sync/tracks/", views.SpotifyTracksSyncView.as_view(), name="spotify_track_list"),
+    path("sync/playlists/", views.SpotifyPlaylistsSyncView.as_view(), name="spotify_track_list"),
+    # path("sync/follows/", views.SpotifyTrackListView.as_view(), name="spotify_track_list"),
 ]
