@@ -35,8 +35,13 @@ class SpotifyDataService:
             first_response = requests.get(url, headers=headers, params={"limit": limit, "offset": 0})
             first_page_data = first_response.json()
             if first_response.status_code != 200:
+                error_data = first_page_data.get('error', {})
+                error_message = error_data.get('message', 'Unknown error')
+                error_status = error_data.get('status', first_response.status_code)
+                logger.error(f"Spotify API error: {error_status} - {error_message}")
+                raise SpotifyApiError(f"Spotify API error: {error_message} (status: {error_status})")
                 logger.error(
-                    f"Error fetching user tracks: {first_page_data.get('error', {}).get('message', 'Unknown error')}")
+                    f"Error fetching user tracks: {first_page_data.get('error', {}).get('message', 'Unknown error')}", exc_info=True)
                 raise SpotifyApiError("Failed to fetch user tracks from Spotify.")
 
             total_count = first_page_data.get("total", 0)

@@ -127,12 +127,9 @@ class SpotifyTracksSyncView(APIView):
     """Trigger background fetch of Spotify tracks."""
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     fetch_spotify_tracks_task.delay(request.user.id)
-    #     return Response(
-    #         {"message": "Spotify track fetch task started."},
-    #         status=status.HTTP_202_ACCEPTED
-    #     )
+    def get(self, request, *args, **kwargs):
+        fetch_spotify_tracks_task.delay(request.user.id)
+        return success_response(message="Spotify tracks sync started.", status_code=status.HTTP_202_ACCEPTED)
 
     def post(self, request, *args, **kwargs):
         """Fetch Spotify tracks."""
@@ -196,10 +193,10 @@ class SpotifyPlaylistsSyncView(APIView):
 
 
 class SpotifyFollowingSyncView(APIView):
-    """Trigger background fetch of Spotify followings."""
+    """Trigger background fetch of Spotify followings artists."""
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
+    # def post(self, request, *args, **kwargs):
     #     fetch_spotify_tracks_task.delay(request.user.id)
     #     return Response(
     #         {"message": "Spotify track fetch task started."},
