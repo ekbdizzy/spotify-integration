@@ -1,6 +1,9 @@
 from django.conf import settings
 from spotipy.oauth2 import SpotifyOAuth
 from spotify_integration.schemes import TokenInfo
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SpotifyApiError(Exception):
@@ -53,6 +56,7 @@ class SpotifyService:
         )
         token_data = sp_oauth.get_access_token(code)
         if not token_data:
+            logger.warning("No token returned from Spotify")
             raise SpotifyApiError("Failed to obtain access token.")
         token_info = TokenInfo.model_validate(token_data)
         return token_info

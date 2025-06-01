@@ -4,7 +4,6 @@ from environs import Env
 env = Env()
 env.read_env()
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
@@ -38,6 +37,8 @@ CELERY_ENABLE_UTC = True
 SPOTIFY_CLIENT_ID = env.str("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = env.str("SPOTIFY_CLIENT_SECRET")
 SPOTIFY_REDIRECT_URI = env.str("SPOTIFY_REDIRECT_URI")
+DEFAULT_LIMIT = 50  # Default limit for paginated responses
+MAX_THREADS = 10  # Maximum number of threads for concurrent requests
 
 REDIS_URL = env.str("REDIS_URL")
 REDIS_OAUTH_STATE_EXPIRE = 60  # 60 seconds
@@ -96,7 +97,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'project.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -165,7 +165,6 @@ LOGGING = {
     },
 }
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -176,7 +175,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/

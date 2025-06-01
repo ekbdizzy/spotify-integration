@@ -5,9 +5,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from spotify_integration.serializers import (SpotifyAuthSerializer,
                                              SpotifyCallbackSerializer)
-from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService
+from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService, SpotifyDataService
 from spotify_integration.schemes import TokenInfo
 import logging
+
+from spotify_integration.tasks import fetch_spotify_tracks_task
 
 logger = logging.getLogger("spotify_integration")
 
@@ -124,4 +126,40 @@ class SpotifyDisconnectView(APIView):
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class SpotifyTrackListView(APIView):
+    """Trigger background fetch of Spotify tracks."""
+    permission_classes = [IsAuthenticated]
+
+    # def get(self, request, *args, **kwargs):
+    #     fetch_spotify_tracks_task.delay(request.user.id)
+    #     return Response(
+    #         {"message": "Spotify track fetch task started."},
+    #         status=status.HTTP_202_ACCEPTED
+    #     )
+
+    def get(self, request, *args, **kwargs):
+        """Fetch Spotify tracks."""
+
+        data_service = SpotifyDataService()
+        auth_service = SpotifyAuthService()
+
+        try:
+            access_token = auth_service.get_access_token(request.user)
+            tracks_data = data_service.fetch_user_tracks(access_token)
+            return Response(
+                tracks_data,
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            # TODO update credentials if expired
+            logger.error(f"Spotify authentication error: {e}")
+
+        except Exception as e:
+            logger.error(f"Error fetching Spotify tracks: {e}", exc_info=True)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

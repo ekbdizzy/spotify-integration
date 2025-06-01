@@ -67,3 +67,11 @@ class SpotifyAuthService:
         user.save()
         logger.info(f"Created new user: {user.username} from Spotify profile.")
         return user
+
+    @staticmethod
+    def get_access_token(user: User) -> str:
+        """Get the access token for the user."""
+        token = SocialCredential.objects.get_access_token(user)
+        if token is None:
+            raise ValueError("Spotify credentials are missing or expired.")
+        return token

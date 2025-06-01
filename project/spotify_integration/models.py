@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import User
 from django.utils import timezone
 from cryptography.fernet import Fernet
 
@@ -18,10 +19,18 @@ class EncryptedFieldMixin:
         return fernet.decrypt(encrypted_token).decode()
 
 
+class SocialCredentialManager(models.Manager):
+    def get_access_token(self, user: User) -> str | None:
+        """Retrieve the access token for a given user.
+        If the token is expired, it returns None."""
+        credential = self.filter(user=user, platform="spotify").first()
+        if credential and not credential.is_expired:
+            return credential.access_token_value
+        return None
+
+
 class SocialCredential(models.Model, EncryptedFieldMixin):
-    """
-    Model to store social credentials for users.
-    """
+    """Model to store social credentials for users."""
 
     PLATFORM_CHOICES = [
         ("spotify", "Spotify"),
@@ -58,13 +67,16 @@ class SocialCredential(models.Model, EncryptedFieldMixin):
         db_table = "social_credentials"
         unique_together = ["user", "platform"]
 
+    objects = SocialCredentialManager()
+
     def __str__(self):
         return f"{self.platform} credential for {self.user.username}"
 
     @property
     def access_token_value(self):
         """Decrypt and return the access token."""
-        return self.decrypt_token(self.access_token)
+        token = self.decrypt_token(bytes(self.access_token))
+        return token
 
     @access_token_value.setter
     def access_token_value(self, token: str):

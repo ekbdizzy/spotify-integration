@@ -2,9 +2,7 @@ from rest_framework import serializers
 
 
 class SpotifyAuthSerializer(serializers.Serializer):
-    """
-    Serializer for handling Spotify authentication data.
-    """
+    """Serializer for handling Spotify authentication data."""
 
     class Meta:
         fields = ['auth_url', 'state']
@@ -18,9 +16,10 @@ class SpotifyAuthSerializer(serializers.Serializer):
 
 
 class SpotifyCallbackSerializer(serializers.Serializer):
-    """
-    Serializer for handling Spotify callback data.
-    """
+    """Serializer for handling Spotify callback data."""
+
+    class Meta:
+        fields = ['state', 'code', 'error']
 
     state = serializers.CharField(
         required=True, help_text="State parameter from Spotify"
