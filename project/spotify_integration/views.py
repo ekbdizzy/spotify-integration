@@ -1,12 +1,10 @@
 from django.contrib.auth import login as django_login, logout
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from response_handlers import success_response, error_response
 from spotify_integration.models import SocialCredential
-from spotify_integration.serializers import (SpotifyAuthSerializer,
-                                             SpotifyCallbackSerializer)
+from spotify_integration.serializers import SpotifyAuthSerializer, SpotifyCallbackSerializer
 from spotify_integration.services import SpotifyAuthService, SpotifyService, StateStorageService, SpotifyDataService
 from spotify_integration.schemes import TokenInfo
 import logging
@@ -30,10 +28,7 @@ class SpotifyAuthView(APIView):
         auth_url = self.spotify_service.get_auth_url(state)
         serializer = self.serializer_class({"auth_url": auth_url, "state": state})
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK,
-        )
+        return success_response(data=serializer.data)
 
 
 class SpotifyCallbackView(APIView):
@@ -52,26 +47,14 @@ class SpotifyCallbackView(APIView):
         serializer.is_valid(raise_exception=True)
 
         if error := serializer.validated_data.get("error"):
-            logger.error(f"Spotify authentication error: {error}")
-            return Response(
-                {"error": error},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return error_response(message=f"Spotify authentication error: {error}")
 
         if not (code := serializer.validated_data.get("code")):
-            logger.error(f"Spotify authentication error: {code}")
-            return Response(
-                {"error": "Missing code parameter."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return error_response(message=f"Spotify authentication error: {code}")
 
         state = serializer.validated_data.get("state")
         if not self.storage_service.is_valid_oauth_state(state):
-            logger.error(f"Invalid or expired state parameter: {state}")
-            return Response(
-                {"error": "Invalid or expired state parameter."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return error_response(message=f"Invalid state parameter {state}. Possible CSRF attack.")
 
         try:
             token_info: TokenInfo = self.spotify_service.exchange_code_for_tokens(code)
@@ -81,24 +64,13 @@ class SpotifyCallbackView(APIView):
 
             # TODO start a background task to sync the user's Spotify data
 
-            return Response(
-                {
-                    "message": "Spotify authentication successful.",
-                },
-                status=status.HTTP_200_OK,
-            )
-
         except Exception as e:
-            logger.error(f"Spotify authentication error: {e}")
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                message=f"Spotify authentication error: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return Response(
-            {"message": "Spotify authentication successful."},
-            status=status.HTTP_200_OK,
-        )
+        return success_response(message="Spotify authentication successful.")
 
 
 class SpotifyDisconnectView(APIView):
@@ -114,21 +86,13 @@ class SpotifyDisconnectView(APIView):
                 credential.delete()
                 logger.info(f"Spotify disconnected for user: {request.user.username}")
                 logout(request)
-                return Response(
-                    {"message": "Spotify account disconnected successfully."},
-                    status=status.HTTP_200_OK,
-                )
+                return success_response(message="Spotify disconnected.")
+
             else:
-                return Response(
-                    {"error": "No Spotify account connected."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return error_response(message="No Spotify account connected.")
         except Exception as e:
-            logger.error(f"Spotify disconnect error: {e}")
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return error_response(message=f"Spotify disconnect error: {e}",
+                                  status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SpotifyRefreshView(APIView):
@@ -143,30 +107,20 @@ class SpotifyRefreshView(APIView):
         try:
             credentials = SocialCredential.objects.filter(user_id=request.user.id, platform="spotify").first()
             if credentials is None:
-                return Response(
-                    {"error": "No Spotify account connected."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return error_response(message="No Spotify account connected.")
 
             if credentials.refresh_token is None:
-                return Response(
-                    {"error": "No refresh token available."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return error_response(message="No Spotify refresh token available.")
 
             token_info: TokenInfo = self.spotify_service.refresh_access_token(credentials.refresh_token_value)
             self.auth_service.create_or_update_user_credentials(request.user, token_info)
 
-            return Response(
-                {"message": "Spotify access token refreshed successfully."},
-                status=status.HTTP_200_OK,
-            )
         except Exception as e:
-            logger.error(f"Spotify refresh error: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return error_response(message=f"Spotify refresh token error: {e}",
+                                  status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+                                  )
+
+        return success_response(message="Spotify refresh access token successful.")
 
 
 class SpotifyTrackListView(APIView):
@@ -189,17 +143,14 @@ class SpotifyTrackListView(APIView):
         try:
             access_token = auth_service.get_access_token(request.user)
             tracks_data = data_service.fetch_user_tracks(access_token)
-            return Response(
-                tracks_data,
-                status=status.HTTP_200_OK
-            )
+            return success_response(data=tracks_data)
+
         except ValueError as e:
             # TODO update credentials if expired
-            logger.error(f"Spotify authentication error: {e}")
+            pass
 
         except Exception as e:
-            logger.error(f"Error fetching Spotify tracks: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return error_response(
+                message=f"Error fetching Spotify tracks: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
