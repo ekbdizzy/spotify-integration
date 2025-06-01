@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpotifyAuthService:
+    """Service for handling Spotify authentication and user management."""
 
     def authenticate_or_create_user(self, token_info: TokenInfo) -> tuple[User, bool]:
         """Authenticate or create a user based on the request."""
@@ -41,7 +42,7 @@ class SpotifyAuthService:
             }
         )
         credentials.access_token_value = token_info.access_token
-        if "refresh_token" in token_info:
+        if token_info.refresh_token:
             credentials.refresh_token_value = token_info.refresh_token
 
         credentials.expires_at = expires_at

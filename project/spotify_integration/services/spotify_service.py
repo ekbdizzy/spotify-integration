@@ -12,6 +12,8 @@ class SpotifyApiError(Exception):
 
 
 class SpotifyService:
+    """Service for interacting with the Spotify API, including authentication and token management."""
+
     def __init__(self):
         self.client_id = settings.SPOTIFY_CLIENT_ID
         self.client_secret = settings.SPOTIFY_CLIENT_SECRET

@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpotifyDataService:
+    """Service to fetch data from Spotify API."""
 
     @staticmethod
     def _fetch_paginated_page(url: str, headers: dict, limit: int, offset: int) -> dict:
