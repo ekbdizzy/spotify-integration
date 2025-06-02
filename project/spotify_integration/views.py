@@ -158,7 +158,7 @@ class SpotifyTracksSyncView(APIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return success_response()
+        return success_response(data=tracks_spotify_data, message="Spotify tracks fetched successfully.")
 
 
 class SpotifyPlaylistsSyncView(APIView):
@@ -203,7 +203,7 @@ class SpotifyFollowingSyncView(APIView):
         try:
             access_token = auth_service.get_access_token(request.user)
             following_spotify_data = data_service.fetch_user_following(access_token)
-            social_posts = data_service.map_playlists_to_social_posts(request.user, following_spotify_data)
+            social_posts = data_service.map_following_artists_to_social_posts(request.user, following_spotify_data)
             data_service.bulk_update_social_posts(
                 user=request.user,
                 platform="spotify",
